@@ -310,6 +310,7 @@ const RideDetails = () => {
                   originCoords={ride.origin_lat && ride.origin_lng ? [ride.origin_lng, ride.origin_lat] : undefined}
                   destCoords={ride.destination_lat && ride.destination_lng ? [ride.destination_lng, ride.destination_lat] : undefined}
                   height="300px"
+                  showEta
                 />
               </CardContent>
             </Card>
@@ -397,6 +398,26 @@ const RideDetails = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Quick Safety */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Safety</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full" onClick={() => {
+                  const shareUrl = `${window.location.origin}/rides/${ride.id}`;
+                  navigator.clipboard.writeText(shareUrl);
+                }}>
+                  Copy Share Trip Link
+                </Button>
+                <Button className="w-full" onClick={() => {
+                  window.location.href = `tel:${ride.profiles?.phone || ''}`;
+                }}>
+                  Emergency Call
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Passengers List */}
             {ride.ride_bookings && ride.ride_bookings.length > 0 && (

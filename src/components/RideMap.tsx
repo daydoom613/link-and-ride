@@ -11,6 +11,7 @@ interface RideMapProps {
   onLocationSelect?: (location: { address: string; coords: [number, number] }, type: 'origin' | 'destination') => void;
   interactive?: boolean;
   height?: string;
+  showEta?: boolean;
 }
 
 const defaultCenter: [number, number] = [20.5937, 78.9629]; // India [lat, lng]
@@ -37,6 +38,7 @@ const RideMap = ({
 }: RideMapProps) => {
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null); // [lat, lng]
   const [clickStep, setClickStep] = useState<'origin' | 'destination'>('origin');
+  const [etaText, setEtaText] = useState<string | null>(null);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -66,6 +68,29 @@ const RideMap = ({
   const polyPoints: [number, number][] = originCoords && destCoords
     ? [ [originCoords[1], originCoords[0]], [destCoords[1], destCoords[0]] ]
     : [];
+
+  // Fetch simple OSRM route ETA if both coords exist
+  useEffect(() => {
+    const fetchEta = async () => {
+      if (!originCoords || !destCoords) { setEtaText(null); return; }
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?overview=false&alternatives=false&steps=false`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const route = json?.routes?.[0];
+        if (route) {
+          const km = (route.distance / 1000).toFixed(1);
+          const min = Math.round(route.duration / 60);
+          setEtaText(`${km} km • ${min} min`);
+        } else {
+          setEtaText(null);
+        }
+      } catch {
+        setEtaText(null);
+      }
+    };
+    fetchEta();
+  }, [originCoords, destCoords]);
 
   const handleMapClick = (e: any) => {
     if (!interactive || !onLocationSelect) return;
@@ -128,6 +153,11 @@ const RideMap = ({
           <p className="text-xs text-muted-foreground">
             Next click: {clickStep === 'origin' ? 'Origin' : 'Destination'}
           </p>
+        </div>
+      )}
+      {etaText && (
+        <div className="absolute top-4 right-4 bg-background/95 backdrop-blur-sm px-3 py-2 rounded-md shadow">
+          <span className="text-sm font-medium">{etaText}</span>
         </div>
       )}
     </div>

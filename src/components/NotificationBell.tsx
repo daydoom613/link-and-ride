@@ -89,6 +89,18 @@ const NotificationBell = () => {
     setUnreadCount(prev => Math.max(0, prev - 1));
   };
 
+  const markAllAsRead = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from('ride_notifications')
+      .update({ read: true })
+      .eq('user_id', user.id)
+      .eq('read', false);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
+  };
+
   const handleNotificationClick = (notification: Notification) => {
     markAsRead(notification.id);
     if (notification.ride_id) {
@@ -114,9 +126,7 @@ const NotificationBell = () => {
       <DropdownMenuContent align="end" className="w-80">
         <div className="flex items-center justify-between px-4 py-2 border-b">
           <h3 className="font-semibold">Notifications</h3>
-          {unreadCount > 0 && (
-            <Badge variant="secondary">{unreadCount} new</Badge>
-          )}
+          <button className="text-xs underline" onClick={markAllAsRead}>Mark all as read</button>
         </div>
         <div className="max-h-96 overflow-y-auto">
           {notifications.length === 0 ? (

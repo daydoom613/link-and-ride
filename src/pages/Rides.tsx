@@ -17,6 +17,7 @@ const Rides = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterVehicle, setFilterVehicle] = useState<string>("all");
   const [filterMood, setFilterMood] = useState<string>("all");
+  const [recommended, setRecommended] = useState<any[]>([]);
 
   useEffect(() => {
     fetchRides();
@@ -39,7 +40,18 @@ const Rides = () => {
         .order("departure_time", { ascending: true });
 
       if (error) throw error;
-      setRides(data || []);
+      const items = data || [];
+      setRides(items);
+      // naive recommendation: earlier departure + more seats
+      const scored = [...items]
+        .map(r => ({
+          r,
+          score: (new Date(r.departure_time).getTime() - Date.now()) / 1000 + (r.available_seats || 0) * -300
+        }))
+        .sort((a,b) => a.score - b.score)
+        .slice(0, 3)
+        .map(s => s.r);
+      setRecommended(scored);
     } catch (error) {
       console.error("Error fetching rides:", error);
     } finally {
@@ -125,6 +137,32 @@ const Rides = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Recommended */}
+        {recommended.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Recommended for you</CardTitle>
+              <CardDescription>Based on upcoming time and seat availability</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                {recommended.map((ride) => (
+                  <div key={ride.id} className="p-4 border rounded-lg cursor-pointer hover:bg-muted/40"
+                       onClick={() => navigate(`/rides/${ride.id}`)}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="font-medium">{ride.origin} → {ride.destination}</div>
+                      <Badge className="capitalize" variant="secondary">{ride.vehicle_type}</Badge>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {format(new Date(ride.departure_time), "PPp")} • {ride.available_seats} seats
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Rides List */}
         {loading ? (
